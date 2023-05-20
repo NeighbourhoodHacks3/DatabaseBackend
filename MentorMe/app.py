@@ -16,10 +16,15 @@ app = Flask(__name__)
 # username, email and password are required, hidden in header
 @app.route("/user/create")
 def create_user():
-    # Get username, email and password from parameters
-    username = request.args.get('username')
-    email = request.args.get('email')
-    password = request.args.get('password')
+    # Get username, email and password from body of request
+    content_type = request.headers['Content-Type']
+    if content_type == 'application/json':
+        json = request.json
+        username = json['username']
+        email = json['email']
+        password = json['password']
+    else:
+        return "Content-Type must be application/json!"
 
     # First check if user already exists
     # Query database for user with username or email
@@ -56,6 +61,7 @@ def create_user():
 ## Read user
 @app.route("/user/profile")
 def get_user_profile():
+    # Get userID from parameters
     user_id_param = request.args.get('userID')
     userID = ObjectId(user_id_param)
 
@@ -72,10 +78,15 @@ def get_user_profile():
 # username, email and password are required, hidden in header
 @app.route("/user/update")
 def update_user():
-    # Get username, email and password from parameters
-    username = request.args.get('username')
-    email = request.args.get('email')
-    password = request.args.get('password')
+    # Get username, email and password from body of request
+    content_type = request.headers['Content-Type']
+    if content_type == 'application/json':
+        json = request.json
+        username = json['username']
+        email = json['email']
+        password = json['password']
+    else:
+        return "Content-Type must be application/json!"
 
     # First check if user exists
     # Query database for user with username or email
@@ -85,9 +96,12 @@ def update_user():
         # Check if password is correct
         if compare_password(password, user['hashedPassword']):
             # Update other description, jobTitle, and the experience array
-            description = request.args.get('description')
-            jobTitle = request.args.get('jobTitle')
-            experience = request.args.get('experience')
+            if 'description' in json:
+                description = json['description']
+            if 'jobTitle' in json:
+                jobTitle = json['jobTitle']
+            if 'experience' in json:
+                experience = json['experience']
 
             # Update user object
             updatedUser = {
@@ -117,13 +131,18 @@ def update_user():
 # userID, title, description, and tags are required, hidden in header
 @app.route("/requestPost/create")
 def create_request_post():
-    # Get userID, title, description, and tags from parameters
-    userID = request.args.get('userID')
-    title = request.args.get('title')
-    description = request.args.get('description')
-    tags = request.args.get('tags')
-    location = request.args.get('location')
-    payment = request.args.get('payment')
+    # Get userID, title, description, and tags from body of the request
+    content_type = request.headers.get('Content-Type')
+    if (content_type == 'application/json'):
+        json = request.json
+        userID = json['userID']
+        title = json['title']
+        description = json['description']
+        tags = json['tags']
+        location = json['location']
+        payment = json['payment']
+    else:
+        return "Error: Content-Type must be application/json!"
 
     # Create request post object
     newRequestPost = {
@@ -167,7 +186,7 @@ def get_request_post():
 @app.route("/requestPosts")
 def get_request_posts():
     # Get page from parameters
-    page = int(request.args.get('page'))
+    page = int(request.args.get('page')) - 1
 
     # Query database for request posts
     requestPosts = db.requestPosts_collection.find().sort('postTime', pymongo.DESCENDING).skip(page * 10).limit(10)
@@ -185,22 +204,37 @@ def get_request_posts():
 # requestPostID is required, hidden in header
 @app.route("/requestPost/update")
 def update_request_post():
-    # Get requestPostID from parameters
-    requestPost_id_param = request.args.get('requestPostID')
+    # Get requestPostID from body of the request
+    content_type = request.headers.get('Content-Type')
+    if (content_type == 'application/json'):
+        json = request.json
+        requestPost_id_param = json['requestPostID']
+        requestOpen = json['requestOpen']
+    else:
+        return "Error: Content-Type must be application/json!"
+    
     requestPostID = ObjectId(requestPost_id_param)
 
     # Query database for request post with requestPostID
     requestPost = db.requestPosts_collection.find_one({'_id': requestPostID})
 
     if requestPost:
+        # check if request post is already closed
+        if requestPost['requestOpen'] == False and requestOpen == False:
+            return "Request post is already closed!"
+        
+        if requestPost['requestOpen'] == True and requestOpen == True:
+            return "Request post is already open!"
+        
         # Update request post
         try:
-            db.requestPosts_collection.update_one({'_id': requestPost['_id']}, {'$set': {'requestOpen': False}})
+            db.requestPosts_collection.update_one({'_id': requestPost['_id']}, {'$set': {'requestOpen': requestOpen}})
         except:
             return "Error updating request post!"
 
         # Return success message
         return "Request post updated!"
+    
     else:
         return "Request post not found!"
     
@@ -209,11 +243,32 @@ def update_request_post():
 # userID, requestPostID, and comment are required, hidden in header
 @app.route("/requestComment/create")
 def create_request_comment():
-    # Get userID, requestPostID, and comment from parameters
-    userID = request.args.get('userID')
-    requestPostID = request.args.get('requestPostID')
-    comment = request.args.get('comment')
+    # Get userID, requestPostID, and comment from body of the request
+    content_type = request.headers.get('Content-Type')
+    if (content_type == 'application/json'):
+        json = request.json
+        userID = json['userID']
+        requestPostID = json['requestPostID']
+        comment = json['comment']
+    else:
+        return "Error: Content-Type must be application/json!"
+    
+    # Check if user exists
+    user = db.users_collection.find_one({'_id': ObjectId(userID)})
 
+    if not user:
+        return "User not found!"
+
+    # Check if request post exists
+    requestPost = db.requestPosts_collection.find_one({'_id': ObjectId(requestPostID)})
+    
+    if not requestPost:
+        return "Request post not found!"
+    else:
+        # Check if request post is closed
+        if requestPost['requestOpen'] == False:
+            return "Request post is closed!"
+    
     # Create request comment object
     newRequestComment = {
         'userID': userID,
@@ -237,12 +292,10 @@ def create_request_comment():
 def get_request_comments():
     # Get requestPostID from parameters
     try:
-        requestPost_id_param = request.args.get('requestPostID')
+        requestPostID = request.args.get('requestPostID')
     except:
         return "Error getting request post ID!"
     
-    requestPostID = ObjectId(requestPost_id_param)
-
     # Query database for request comments with requestPostID
     requestComments = db.requestComments_collection.find({'requestPostID': requestPostID}).sort('commentTime', pymongo.DESCENDING)
 
@@ -260,13 +313,18 @@ def get_request_comments():
 # userID, title, description, and tags are required, hidden in header
 @app.route("/offerPost/create")
 def create_offer_post():
-    # Get userID, title, description, and tags from parameters
-    userID = request.args.get('userID')
-    title = request.args.get('title')
-    description = request.args.get('description')
-    tags = request.args.get('tags')
-    location = request.args.get('location')
-    payment = request.args.get('payment')
+    # Get userID, title, description, and tags from body of the request
+    content_type = request.headers.get('Content-Type')
+    if (content_type == 'application/json'):
+        json = request.json
+        userID = json['userID']
+        title = json['title']
+        description = json['description']
+        tags = json['tags']
+        location = json['location']
+        payment = json['payment']
+    else:
+        return "Error: Content-Type must be application/json!"
 
     # Create offer post object
     newOfferPost = {
@@ -314,7 +372,7 @@ def get_offer_post():
 @app.route("/offerPosts")
 def get_offer_posts():
     # Get page from parameters
-    page = int(request.args.get('page'))
+    page = int(request.args.get('page')) - 1
 
     # Query database for offer posts
     offerPosts = db.offerPosts_collection.find().sort('postTime', pymongo.DESCENDING).skip(page * 10).limit(10)
@@ -332,22 +390,37 @@ def get_offer_posts():
 # offerPostID is required, hidden in header
 @app.route("/offerPost/update")
 def update_offer_post():
-    # Get offerPostID from parameters
-    offerPost_id_param = request.args.get('offerPostID')
+    # Get offerPostID from body of the request
+    content_type = request.headers.get('Content-Type')
+    if (content_type == 'application/json'):
+        json = request.json
+        offerPost_id_param = json['offerPostID']
+        offerOpen = json['offerOpen']
+    else:
+        return "Error: Content-Type must be application/json!"
+    
     offerPostID = ObjectId(offerPost_id_param)
 
     # Query database for offer post with offerPostID
     offerPost = db.offerPosts_collection.find_one({'_id': offerPostID})
 
     if offerPost:
+        # Check if offer post is already closed
+        if offerPost['offerOpen'] == False and offerOpen == False:
+            return "Offer post already closed!"
+        
+        if offerPost['offerOpen'] == True and offerOpen == True:
+            return "Offer post already open!"
+        
         # Update offer post
         try:
-            db.offerPosts_collection.update_one({'_id': offerPost['_id']}, {'$set': {'offerOpen': False}})
+            db.offerPosts_collection.update_one({'_id': offerPost['_id']}, {'$set': {'offerOpen': offerOpen}})
         except:
             return "Error updating offer post!"
 
         # Return success message
         return "Offer post updated!"
+    
     else:
         return "Offer post not found!"
     
@@ -356,10 +429,31 @@ def update_offer_post():
 # userID, offerPostID, and comment are required, hidden in header
 @app.route("/offerComment/create")
 def create_offer_comment():
-    # Get userID, offerPostID, and comment from parameters
-    userID = request.args.get('userID')
-    offerPostID = request.args.get('offerPostID')
-    comment = request.args.get('comment')
+    # Get userID, offerPostID, and comment from body of the request
+    content_type = request.headers.get('Content-Type')
+    if (content_type == 'application/json'):
+        json = request.json
+        userID = json['userID']
+        offerPostID = json['offerPostID']
+        comment = json['comment']
+    else:
+        return "Error: Content-Type must be application/json!"
+    
+    # Check if user exists
+    user = db.users_collection.find_one({'_id': ObjectId(userID)})
+
+    if not user:
+        return "User not found!"
+    
+    # Check if offer post exists
+    offerPost = db.offerPosts_collection.find_one({'_id': ObjectId(offerPostID)})
+
+    if not offerPost:
+        return "Offer post not found!"
+    else:
+        # Check if request post is closed
+        if offerPost['offerOpen'] == False:
+            return "Offer post is closed!"
 
     # Create offer comment object
     newOfferComment = {
@@ -384,12 +478,10 @@ def create_offer_comment():
 def get_offer_comments():
     # Get offerPostID from parameters
     try:
-        offerPost_id_param = request.args.get('offerPostID')
+        offerPostID = request.args.get('offerPostID')
     except:
         return "Error getting offer post ID!"
     
-    offerPostID = ObjectId(offerPost_id_param)
-
     # Query database for offer comments with offerPostID
     offerComments = db.offerComments_collection.find({'offerPostID': offerPostID}).sort('commentTime', pymongo.DESCENDING)
 
