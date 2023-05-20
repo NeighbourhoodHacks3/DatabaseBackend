@@ -1,2 +1,5 @@
 /hiddenfolder
 FlaskPymongoTest/hidden.py
+MentorMe/hidden.py
+FlaskPymongoTest/__pycache__
+MentorMe/__pycache__/
