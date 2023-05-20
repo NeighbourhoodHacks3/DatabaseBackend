@@ -3,7 +3,6 @@ from markupsafe import escape
 from flask_pymongo import pymongo
 from bson import ObjectId
 import datetime
-
 import bcrypt
 
 import db 
