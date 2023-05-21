@@ -17,7 +17,7 @@ CORS(app)
 ## User database ##
 ## Create user
 # username, email and password are required, hidden in header
-@app.route("/user/create")
+@app.route("/user/create", methods = ['POST', 'GET'])
 @cross_origin()
 def create_user():
     # Get username, email and password from body of request
@@ -81,13 +81,14 @@ def get_user_profile():
     
 ## Update user
 # username, email and password are required, hidden in header
-@app.route("/user/update")
+@app.route("/user/update", methods = ['POST', 'GET'])
 @cross_origin()
 def update_user():
     # Get username, email and password from body of request
     content_type = request.headers['Content-Type']
     if content_type == 'application/json':
         json = request.json
+        userID = json['userID']
         username = json['username']
         email = json['email']
         password = json['password']
@@ -96,7 +97,7 @@ def update_user():
 
     # First check if user exists
     # Query database for user with username or email
-    user = db.users_collection.find_one({'$or': [{'username': username}, {'email': email}]})
+    user = db.users_collection.find_one({'_id': ObjectId(userID)})
 
     if user:
         # Check if password is correct
@@ -119,6 +120,8 @@ def update_user():
                 'experience': experience
             }
 
+            print("updatedUser", updatedUser)
+
             # Update user
             try:
                 db.users_collection.update_one({'_id': user['_id']}, {'$set': updatedUser})
@@ -135,7 +138,7 @@ def update_user():
 ## Request post database ##
 ## Create request post
 # userID, title, description, and tags are required, hidden in header
-@app.route("/requestPost/create")
+@app.route("/requestPost/create", methods = ['POST', 'GET'])
 @cross_origin()
 def create_request_post():
     # Get userID, title, description, and tags from body of the request
@@ -211,7 +214,7 @@ def get_request_posts():
 
 ## Update request post (close request post)
 # requestPostID is required, hidden in header
-@app.route("/requestPost/update")
+@app.route("/requestPost/update", methods = ['POST', 'GET'])
 @cross_origin()
 def update_request_post():
     # Get requestPostID from body of the request
@@ -251,7 +254,7 @@ def update_request_post():
 ## Request Comment database ##
 ## Create request comment
 # userID, requestPostID, and comment are required, hidden in header
-@app.route("/requestComment/create")
+@app.route("/requestComment/create", methods = ['POST', 'GET'])
 @cross_origin()
 def create_request_comment():
     # Get userID, requestPostID, and comment from body of the request
@@ -323,7 +326,7 @@ def get_request_comments():
 ## Offer post database ##
 ## Create offer post
 # userID, title, description, and tags are required, hidden in header
-@app.route("/offerPost/create")
+@app.route("/offerPost/create", methods = ['POST', 'GET'])
 @cross_origin()
 def create_offer_post():
     # Get userID, title, description, and tags from body of the request
@@ -403,7 +406,7 @@ def get_offer_posts():
 
 ## Update offer post (close offer post)
 # offerPostID is required, hidden in header
-@app.route("/offerPost/update")
+@app.route("/offerPost/update", methods = ['POST', 'GET'])
 @cross_origin()
 def update_offer_post():
     # Get offerPostID from body of the request
@@ -443,7 +446,7 @@ def update_offer_post():
 ## Offer Comment database ##
 ## Create offer comment
 # userID, offerPostID, and comment are required, hidden in header
-@app.route("/offerComment/create")
+@app.route("/offerComment/create", methods = ['POST', 'GET'])
 @cross_origin()
 def create_offer_comment():
     # Get userID, offerPostID, and comment from body of the request
@@ -512,6 +515,43 @@ def get_offer_comments():
 
     return jsonify(offerCommentsList)
 
+## Authentication ##
+# Login
+# email and password are required
+@app.route("/login", methods = ['POST', 'GET'])
+@cross_origin()
+def login():
+    # Get email and password from body of request
+    content_type = request.headers['Content-Type']
+    if content_type == 'application/json':
+        json = request.json
+        email = json['email']
+        password = json['password']
+    else:
+        return "Content-Type must be application/json!"
+    
+    # Query database for user with email
+    user = db.users_collection.find_one({'email': email})
+
+    if user:
+        # Check if password is correct
+        if compare_password(password, user['hashedPassword']):
+            # Remove password and email from user object if it exists
+            if 'hashedPassword' in user:
+                del user['hashedPassword']
+            if 'email' in user:
+                del user['email']
+
+            # convert ObjectId to string
+            user['_id'] = str(user['_id'])
+
+            # Return user object
+            return jsonify(user)
+        else:
+            return "Incorrect password!"
+        
+    else:
+        return "User not found!"
 
 
 ### Helper functions ###
