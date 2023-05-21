@@ -515,8 +515,8 @@ def string_to_bytes(string):
 
 def userProfileInfo(user):
     # Remove password and email from user object if it exists
-    if 'password' in user:
-        del user['password']
+    if 'hashedPassword' in user:
+        del user['hashedPassword']
     if 'email' in user:
         del user['email']
 
