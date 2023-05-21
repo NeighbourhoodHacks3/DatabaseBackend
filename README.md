@@ -5,3 +5,5 @@
 
 ## Set up
 - `pip freeze > requirements.txt`
+
+## Our final code for the project is under the MentorMe folder!
