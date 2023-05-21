@@ -34,8 +34,6 @@ def create_user():
     # Query database for user with username or email
     user = db.users_collection.find_one({'$or': [{'username': username}, {'email': email}]})
 
-    print(user)
-
     if user:
         return "User already exists!"
 
@@ -51,16 +49,16 @@ def create_user():
         'hashedPassword': hashed_password_str
     }
 
-    print(newUser)
-
-    # If user does not exist, create user
+    # If user does not exist, create user and get userID
     try:
-        db.users_collection.insert_one(newUser)
+        userID = db.users_collection.insert_one(newUser).inserted_id
+        newUser['_id'] = str(userID)
+        del newUser['hashedPassword']
     except:
         return "Error creating user!"
 
     # Return success message
-    return "User created!"
+    return jsonify(newUser)
 
 ## Read user
 @app.route("/user/profile")
