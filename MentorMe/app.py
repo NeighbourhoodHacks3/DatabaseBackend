@@ -5,16 +5,20 @@ from bson import ObjectId
 import datetime
 import bcrypt
 
+from flask_cors import CORS, cross_origin
+
 import db 
 
 #### MongoDB Atlas backend ####
 
 app = Flask(__name__)
+CORS(app)
 
 ## User database ##
 ## Create user
 # username, email and password are required, hidden in header
 @app.route("/user/create")
+@cross_origin()
 def create_user():
     # Get username, email and password from body of request
     content_type = request.headers['Content-Type']
@@ -60,6 +64,7 @@ def create_user():
 
 ## Read user
 @app.route("/user/profile")
+@cross_origin()
 def get_user_profile():
     # Get userID from parameters
     user_id_param = request.args.get('userID')
@@ -77,6 +82,7 @@ def get_user_profile():
 ## Update user
 # username, email and password are required, hidden in header
 @app.route("/user/update")
+@cross_origin()
 def update_user():
     # Get username, email and password from body of request
     content_type = request.headers['Content-Type']
@@ -130,6 +136,7 @@ def update_user():
 ## Create request post
 # userID, title, description, and tags are required, hidden in header
 @app.route("/requestPost/create")
+@cross_origin()
 def create_request_post():
     # Get userID, title, description, and tags from body of the request
     content_type = request.headers.get('Content-Type')
@@ -167,6 +174,7 @@ def create_request_post():
 
 ## Read request post
 @app.route("/requestPost")
+@cross_origin()
 def get_request_post():
     requestPost_id_param = request.args.get('requestPostID')
     requestPostID = ObjectId(requestPost_id_param)
@@ -184,6 +192,7 @@ def get_request_post():
 ## Get paginated request posts
 # page is required, hidden in header
 @app.route("/requestPosts")
+@cross_origin()
 def get_request_posts():
     # Get page from parameters
     page = int(request.args.get('page')) - 1
@@ -203,6 +212,7 @@ def get_request_posts():
 ## Update request post (close request post)
 # requestPostID is required, hidden in header
 @app.route("/requestPost/update")
+@cross_origin()
 def update_request_post():
     # Get requestPostID from body of the request
     content_type = request.headers.get('Content-Type')
@@ -242,6 +252,7 @@ def update_request_post():
 ## Create request comment
 # userID, requestPostID, and comment are required, hidden in header
 @app.route("/requestComment/create")
+@cross_origin()
 def create_request_comment():
     # Get userID, requestPostID, and comment from body of the request
     content_type = request.headers.get('Content-Type')
@@ -289,6 +300,7 @@ def create_request_comment():
 ## Get request comments for a request post
 # requestPostID is required, hidden in header
 @app.route("/requestComments")
+@cross_origin()
 def get_request_comments():
     # Get requestPostID from parameters
     try:
@@ -312,6 +324,7 @@ def get_request_comments():
 ## Create offer post
 # userID, title, description, and tags are required, hidden in header
 @app.route("/offerPost/create")
+@cross_origin()
 def create_offer_post():
     # Get userID, title, description, and tags from body of the request
     content_type = request.headers.get('Content-Type')
@@ -349,6 +362,7 @@ def create_offer_post():
 
 ## Read offer post
 @app.route("/offerPost")
+@cross_origin()
 def get_offer_post():
     try:
         offerPost_id_param = request.args.get('offerPostID')
@@ -370,6 +384,7 @@ def get_offer_post():
 ## Get paginated offer posts
 # page is required, hidden in header
 @app.route("/offerPosts")
+@cross_origin()
 def get_offer_posts():
     # Get page from parameters
     page = int(request.args.get('page')) - 1
@@ -389,6 +404,7 @@ def get_offer_posts():
 ## Update offer post (close offer post)
 # offerPostID is required, hidden in header
 @app.route("/offerPost/update")
+@cross_origin()
 def update_offer_post():
     # Get offerPostID from body of the request
     content_type = request.headers.get('Content-Type')
@@ -428,6 +444,7 @@ def update_offer_post():
 ## Create offer comment
 # userID, offerPostID, and comment are required, hidden in header
 @app.route("/offerComment/create")
+@cross_origin()
 def create_offer_comment():
     # Get userID, offerPostID, and comment from body of the request
     content_type = request.headers.get('Content-Type')
@@ -475,6 +492,7 @@ def create_offer_comment():
 ## Get offer comments for an offer post
 # offerPostID is required, hidden in header
 @app.route("/offerComments")
+@cross_origin()
 def get_offer_comments():
     # Get offerPostID from parameters
     try:
@@ -535,5 +553,5 @@ def get_current_time():
 
   return date_time
 
-if __name__ == '__main__':
-    app.run(port=8000)
+# if __name__ == '__main__':
+#     app.run(port=8000)
